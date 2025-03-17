@@ -20,6 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ModelSelect from './ModelSelect';
 import LanguageSwitcher from './LanguageSwitcher';
+import UpdateChecker from './UpdateChecker';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -93,29 +94,28 @@ export default function Navbar({ projects = [], currentProject, models = [] }) {
             mr: 2,
             '&:hover': { opacity: 0.9 }
           }}
-            // 鼠标悬浮放大、动画效果
             style={{ cursor: 'pointer', '&:hover': { opacity: 0.9 } }}
             onClick={() => {
               window.location.href = '/';
             }}
           >
-            <Avatar
+            <Box
+              component="img"
+              src="/imgs/logo.svg"
+              alt="Easy Dataset Logo"
               sx={{
-                bgcolor: 'secondary.main',
-                mr: 1.5,
                 width: 36,
-                height: 36
+                height: 36,
+                mr: 1.5
               }}
-              variant="rounded"
-            >
-              <DataObjectIcon fontSize="small" />
-            </Avatar>
+            />
             <Typography
               variant="h6"
               component="div"
               sx={{
                 fontWeight: 600,
-                letterSpacing: '-0.5px'
+                letterSpacing: '-0.5px',
+                fontSize: '1.2rem'
               }}
               className={theme.palette.mode === 'dark' ? 'gradient-text' : ''}
               color={theme.palette.mode === 'dark' ? 'inherit' : 'white'}
@@ -233,25 +233,7 @@ export default function Navbar({ projects = [], currentProject, models = [] }) {
         {/* 右侧操作区 */}
         <Box sx={{ display: 'flex', flexGrow: 0, alignItems: 'center', gap: 2 }} style={{ position: 'absolute', right: '20px' }}>
 
-          {/* 数据集广场链接 */}
-          <Tooltip title={t('datasetSquare.title')}>
-            <Chip
-              icon={<StorageIcon fontSize="small" />}
-              label={t('datasetSquare.title')}
-              component={Link}
-              href="/dataset-square"
-              clickable
-              color="secondary"
-              variant={pathname === '/dataset-square' ? 'filled' : 'outlined'}
-              sx={{
-                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.4)',
-                color: theme.palette.mode === 'dark' ? 'inherit' : 'white',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.2)'
-                }
-              }}
-            />
-          </Tooltip>
+
           {/* 模型选择 */}
           {
             location.pathname.includes('/projects/') && (<ModelSelect
@@ -261,6 +243,26 @@ export default function Navbar({ projects = [], currentProject, models = [] }) {
             />)
           }
 
+          {/* 数据集广场链接 - 改为图标按钮样式 */}
+          <Tooltip title={t('datasetSquare.title')}>
+            <IconButton
+              component={Link}
+              href="/dataset-square"
+              size="small"
+              sx={{
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.15)',
+                color: theme.palette.mode === 'dark' ? 'inherit' : 'white',
+                p: 1,
+                borderRadius: 1.5,
+                '&:hover': {
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.25)'
+                }
+              }}
+              style={{ right: '-15px' }}
+            >
+              <StorageIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           {/* 语言切换器 */}
           <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
             <LanguageSwitcher />
@@ -302,6 +304,9 @@ export default function Navbar({ projects = [], currentProject, models = [] }) {
               <GitHubIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+
+          {/* 更新检查器 */}
+          <UpdateChecker />
 
         </Box>
       </Toolbar>
