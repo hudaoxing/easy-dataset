@@ -21,19 +21,8 @@ export default function ProjectLayout({ children, params }) {
     try {
       setLoading(true);
 
-      // 获取所有项目
-      // 从 localStorage 获取项目 ID 数组
-      const userProjectIds = JSON.parse(localStorage.getItem('userProjects') || '[]');
-
-      if (userProjectIds.length === 0) {
-        // 如果没有保存的项目，直接设置为空数组
-        setProjects([]);
-        setLoading(false);
-        return;
-      }
-
       // 获取用户创建的项目详情
-      const projectsResponse = await fetch(`/api/projects?projectIds=${userProjectIds.join(',')}`);
+      const projectsResponse = await fetch(`/api/projects`);
       if (!projectsResponse.ok) {
         throw new Error(t('projects.fetchFailed'));
       }
@@ -66,18 +55,6 @@ export default function ProjectLayout({ children, params }) {
             ...model
           }));
           setModels(formattedModels);
-
-          // 更新 localStorage 中的模型信息
-          if (formattedModels.length > 0) {
-            const selectedModelId = localStorage.getItem('selectedModelId');
-            // 通知用户：如果之前选择的模型不在当前模型列表中，则使用第一个模型
-            // const modelExists = selectedModelId && formattedModels.some(m => m.id === selectedModelId);
-            // if (!modelExists) {
-            //   const defaultModel = formattedModels[0];
-            //   localStorage.setItem('selectedModelId', defaultModel.id);
-            //   localStorage.setItem('selectedModelInfo', JSON.stringify(defaultModel));
-            // }
-          }
         }
       } else {
         console.warn('获取模型配置失败，使用默认配置');
@@ -107,7 +84,7 @@ export default function ProjectLayout({ children, params }) {
       router.push('/');
       return;
     }
-    
+
     fetchData();
   }, [projectId, router]);
 
@@ -157,20 +134,6 @@ export default function ProjectLayout({ children, params }) {
         }));
 
         setModels(formattedModels);
-
-        // 更新 localStorage 中的模型信息
-        if (formattedModels.length > 0) {
-          const selectedModelId = localStorage.getItem('selectedModelId');
-          const modelExists = selectedModelId && formattedModels.some(m => m.id === selectedModelId);
-
-          // if (!modelExists) {
-          //   const defaultModel = formattedModels[0];
-          //   localStorage.setItem('selectedModelId', defaultModel.id);
-          //   localStorage.setItem('selectedModelInfo', JSON.stringify(defaultModel));
-          //   // 不设置 error 状态，避免触发重新渲染
-          //   console.log('之前选择的模型不存在，使用第一个模型');
-          // }
-        }
       }
     } catch (error) {
       console.error('获取模型数据出错:', error);

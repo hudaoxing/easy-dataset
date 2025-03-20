@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getTextChunk } from '@/lib/db/texts';
 import { getQuestionsForChunk } from '@/lib/db/questions';
-import { getDatasets, saveDatasets } from '@/lib/db/datasets';
+import { getDatasets, saveDatasets, updateDataset } from '@/lib/db/datasets';
 import getAnswerPrompt from '@/lib/llm/prompts/answer';
 import getAnswerEnPrompt from '@/lib/llm/prompts/answerEn';
-import { extractThinkChain, extractAnswer } from '@/lib/llm/common/util';
+import getOptimizeCotPrompt from '@/lib/llm/prompts/optimizeCot';
+import getOptimizeCotEnPrompt from '@/lib/llm/prompts/optimizeCotEn';
 
 
 const LLMClient = require('@/lib/llm/core');
+
+async function optimizeCot(originalQuestion, answer, originalCot, language, llmClient, id, projectId) {
+  const prompt = language === 'en' ? getOptimizeCotEnPrompt(originalQuestion, answer, originalCot) : getOptimizeCotPrompt(originalQuestion, answer, originalCot);
+  const { answer: optimizedAnswer } = await llmClient.getResponseWithCOT(prompt);
+  await updateDataset(projectId, id, { cot: optimizedAnswer });
+  console.log(originalQuestion, id, '已成功优化思维链');
+}
 
 /**
  * 生成数据集（为单个问题生成答案）
@@ -52,41 +60,35 @@ export async function POST(request, { params }) {
     // 生成答案的提示词
     const prompt = language === 'en' ? getAnswerEnPrompt(chunk.content, question.question) : getAnswerPrompt(chunk.content, question.question);
 
-    // console.log(prompt);
     // 调用大模型生成答案
-    const llmRes = await llmClient.chat(prompt);
-    let answer = llmRes.choices?.[0]?.message?.content ||
-      llmRes.response ||
-      '';
+    const { answer, cot } = await llmClient.getResponseWithCOT(prompt);
 
-    let cot = '';
-    if (answer.startsWith('<think>') || answer.startsWith('<thinking>')) {
-      cot = extractThinkChain(answer);
-      answer = extractAnswer(answer);
-    } else {
-      cot = llmRes.choices?.[0]?.message?.reasoning_content || llmRes.choices?.[0]?.message?.reasoning || '';
-    }
-
-
-    console.log(questionId, 'answer:', answer, cot);
     // 获取现有数据集
     const datasets = await getDatasets(projectId);
 
+
+    const datasetId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
     // 创建新的数据集项
     const datasetItem = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: datasetId,
       question: question.question,
       answer: answer,
-      cot,
       chunkId: chunkId,
       model: model.name,
       createdAt: new Date().toISOString(),
       questionLabel: question.label || null
     };
 
+    if (cot) {
+      // 为了性能考虑，这里异步优化
+      optimizeCot(question.question, answer, cot, language, llmClient, datasetId, projectId);
+    }
+
     // 添加到数据集
     datasets.push(datasetItem);
     await saveDatasets(projectId, datasets);
+    console.log(datasets.length, '已成功生成数据集', question.question);
 
     return NextResponse.json({
       success: true,

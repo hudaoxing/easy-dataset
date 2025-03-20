@@ -23,7 +23,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  LinearProgress
+  LinearProgress,
+  Select,
+  MenuItem,
+  useTheme
 } from '@mui/material';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -37,6 +40,7 @@ import useTaskSettings from '@/hooks/useTaskSettings';
 
 export default function QuestionsPage({ params }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { projectId } = params;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,6 +51,7 @@ export default function QuestionsPage({ params }) {
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [answerFilter, setAnswerFilter] = useState('all'); // 'all', 'answered', 'unanswered'
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -148,12 +153,25 @@ export default function QuestionsPage({ params }) {
     if (selectedQuestions.length > 0) {
       setSelectedQuestions([]);
     } else {
-      const allQuestionKeys = [];
-      questions.forEach(question => {
-        // 使用 JSON.stringify 创建 key
-        allQuestionKeys.push(JSON.stringify({ question: question.question, chunkId: question.chunkId }));
+      const filteredQuestions = questions.filter(question => {
+        const matchesSearch = searchTerm === '' ||
+          question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        let matchesAnswerFilter = true;
+        if (answerFilter === 'answered') {
+          matchesAnswerFilter = question.dataSites && question.dataSites.length > 0;
+        } else if (answerFilter === 'unanswered') {
+          matchesAnswerFilter = !question.dataSites || question.dataSites.length === 0;
+        }
+
+        return matchesSearch && matchesAnswerFilter;
       });
-      setSelectedQuestions(allQuestionKeys);
+
+      const filteredQuestionKeys = filteredQuestions.map(question =>
+        JSON.stringify({ question: question.question, chunkId: question.chunkId })
+      );
+      setSelectedQuestions(filteredQuestionKeys);
     }
   };
 
@@ -163,7 +181,6 @@ export default function QuestionsPage({ params }) {
 
     try {
       // 从 localStorage 获取当前选择的模型信息
-      const selectedModelId = localStorage.getItem('selectedModelId');
       let model = null;
 
       // 尝试从 localStorage 获取完整的模型信息
@@ -179,7 +196,7 @@ export default function QuestionsPage({ params }) {
       }
 
       // 如果没有模型 ID 或模型信息，返回 null
-      if (!selectedModelId || !model) {
+      if (!model) {
         return null;
       }
 
@@ -571,17 +588,8 @@ export default function QuestionsPage({ params }) {
       // 逐个删除问题，完全模仿单个删除的逻辑
       for (const key of selectedQuestions) {
         try {
-          // 从问题键中提取 chunkId 和 questionId
-          // 问题键的格式是: "chunkId-question"
-          // 注意：chunkId 可能包含短横线，所以我们需要找到最后一个短横线
-          const lastDashIndex = key.lastIndexOf('-');
-          if (lastDashIndex === -1) {
-            console.error('无法解析问题键:', key);
-            continue;
-          }
 
-          const chunkId = key.substring(0, lastDashIndex);
-          const questionId = key.substring(lastDashIndex + 1);
+          const { question: questionId, chunkId } = JSON.parse(key);
 
           console.log('开始删除问题:', { chunkId, questionId });
 
@@ -736,7 +744,20 @@ export default function QuestionsPage({ params }) {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          {t('questions.title')} ({totalQuestions})
+          {t('questions.title')} ({questions.filter(question => {
+            const matchesSearch = searchTerm === '' ||
+              question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            let matchesAnswerFilter = true;
+            if (answerFilter === 'answered') {
+              matchesAnswerFilter = question.dataSites && question.dataSites.length > 0;
+            } else if (answerFilter === 'unanswered') {
+              matchesAnswerFilter = !question.dataSites || question.dataSites.length === 0;
+            }
+
+            return matchesSearch && matchesAnswerFilter;
+          }).length})
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
@@ -790,15 +811,25 @@ export default function QuestionsPage({ params }) {
               <Typography variant="body2" sx={{ ml: 1 }}>
                 {selectedQuestions.length > 0 ? t('questions.selectedCount', { count: selectedQuestions.length }) : t('questions.selectAll')}
                 ({t('questions.totalCount', {
-                  count: questions.filter(question =>
-                    question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()))
-                  ).length
+                  count: questions.filter(question => {
+                    const matchesSearch = searchTerm === '' ||
+                      question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+                    let matchesAnswerFilter = true;
+                    if (answerFilter === 'answered') {
+                      matchesAnswerFilter = question.dataSites && question.dataSites.length > 0;
+                    } else if (answerFilter === 'unanswered') {
+                      matchesAnswerFilter = !question.dataSites || question.dataSites.length === 0;
+                    }
+
+                    return matchesSearch && matchesAnswerFilter;
+                  }).length
                 })})
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <TextField
                 placeholder={t('questions.searchPlaceholder')}
                 variant="outlined"
@@ -815,6 +846,35 @@ export default function QuestionsPage({ params }) {
                   ),
                 }}
               />
+              <Select
+                value={answerFilter}
+                onChange={(e) => setAnswerFilter(e.target.value)}
+                size="small"
+                sx={{
+                  width: { xs: '100%', sm: 200 },
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'white',
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme.palette.mode === 'dark' ? 'transparent' : 'rgba(0, 0, 0, 0.23)'
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: theme.palette.mode === 'dark' ? 'transparent' : 'rgba(0, 0, 0, 0.87)'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main'
+                  }
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    elevation: 2,
+                    sx: { mt: 1, borderRadius: 2 }
+                  }
+                }}
+              >
+                <MenuItem value="all">{t('questions.filterAll')}</MenuItem>
+                <MenuItem value="answered">{t('questions.filterAnswered')}</MenuItem>
+                <MenuItem value="unanswered">{t('questions.filterUnanswered')}</MenuItem>
+              </Select>
             </Box>
           </Stack>
         </Box>
@@ -823,10 +883,22 @@ export default function QuestionsPage({ params }) {
 
         <TabPanel value={activeTab} index={0}>
           <QuestionListView
-            questions={questions.filter(question =>
-              question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()))
-            )}
+            questions={questions.filter(question => {
+              // 搜索词筛选
+              const matchesSearch = searchTerm === '' ||
+                question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+              // 答案状态筛选
+              let matchesAnswerFilter = true;
+              if (answerFilter === 'answered') {
+                matchesAnswerFilter = question.dataSites && question.dataSites.length > 0;
+              } else if (answerFilter === 'unanswered') {
+                matchesAnswerFilter = !question.dataSites || question.dataSites.length === 0;
+              }
+
+              return matchesSearch && matchesAnswerFilter;
+            })}
             chunks={chunks}
             selectedQuestions={selectedQuestions}
             onSelectQuestion={handleSelectQuestion}
@@ -838,10 +910,22 @@ export default function QuestionsPage({ params }) {
 
         <TabPanel value={activeTab} index={1}>
           <QuestionTreeView
-            questions={questions.filter(question =>
-              question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()))
-            )}
+            questions={questions.filter(question => {
+              // 搜索词筛选
+              const matchesSearch = searchTerm === '' ||
+                question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+              // 答案状态筛选
+              let matchesAnswerFilter = true;
+              if (answerFilter === 'answered') {
+                matchesAnswerFilter = question.dataSites && question.dataSites.length > 0;
+              } else if (answerFilter === 'unanswered') {
+                matchesAnswerFilter = !question.dataSites || question.dataSites.length === 0;
+              }
+
+              return matchesSearch && matchesAnswerFilter;
+            })}
             chunks={chunks}
             tags={tags}
             selectedQuestions={selectedQuestions}

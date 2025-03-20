@@ -20,7 +20,7 @@ import FileUploader from '@/components/text-split/FileUploader';
 import ChunkList from '@/components/text-split/ChunkList';
 import DomainAnalysis from '@/components/text-split/DomainAnalysis';
 import request from '@/lib/util/request';
-import { processInParallel } from '@/lib/utils/async'
+import { processInParallel } from '@/lib/util/async'
 import useTaskSettings from '@/hooks/useTaskSettings';
 
 export default function TextSplitPage({ params }) {
@@ -28,12 +28,13 @@ export default function TextSplitPage({ params }) {
   const { projectId } = params;
   const [activeTab, setActiveTab] = useState(0);
   const [chunks, setChunks] = useState([]);
+  const [showChunks, setShowChunks] = useState([]);
   const [tocData, setTocData] = useState('');
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null); // 可以是字符串或对象 { severity, message }
-  const { taskSettings } = useTaskSettings(projectId);
+  const {taskSettings } = useTaskSettings(projectId);
 
   // 进度状态
   const [progress, setProgress] = useState({
@@ -61,6 +62,7 @@ export default function TextSplitPage({ params }) {
 
       const data = await response.json();
       setChunks(data.chunks || []);
+      setShowChunks(data.chunks || []);
 
       // 如果有文件结果，处理详细信息
       if (data.toc) {
@@ -126,6 +128,16 @@ export default function TextSplitPage({ params }) {
         return newChunks;
       });
 
+      setShowChunks(prev => {
+        const newChunks = [...prev];
+        data.chunks.forEach(chunk => {
+          if (!newChunks.find(c => c.id === chunk.id)) {
+            newChunks.push(chunk);
+          }
+        });
+        return newChunks;
+      });
+
       // 更新目录结构
       if (data.toc) {
         setTocData(data.toc);
@@ -145,7 +157,7 @@ export default function TextSplitPage({ params }) {
   // 处理删除文本块
   const handleDeleteChunk = async chunkId => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/chunks/${chunkId}`, {
+      const response = await fetch(`/api/projects/${projectId}/chunks/${encodeURIComponent(chunkId)}`, {
         method: 'DELETE'
       });
 
@@ -156,6 +168,7 @@ export default function TextSplitPage({ params }) {
 
       // 更新文本块列表
       setChunks(prev => prev.filter(chunk => chunk.id !== chunkId));
+      setShowChunks(prev => prev.filter(chunk => chunk.id !== chunkId));
     } catch (error) {
       console.error(t('textSplit.deleteChunkError'), error);
       setError(error.message);
@@ -176,8 +189,6 @@ export default function TextSplitPage({ params }) {
         questionCount: 0
       });
 
-      // 从 localStorage 获取当前选择的模型信息
-      const selectedModelId = localStorage.getItem('selectedModelId');
       let model = null;
 
       // 尝试从 localStorage 获取完整的模型信息
@@ -187,18 +198,14 @@ export default function TextSplitPage({ params }) {
         try {
           model = JSON.parse(modelInfoStr);
         } catch (e) {
-          console.error(t('解析模型信息出错:'), e);
+          console.error('解析模型信息出错:', e);
           // 继续执行，将在下面尝试获取模型信息
         }
       }
 
       // 如果仍然没有模型信息，抛出错误
-      if (!selectedModelId) {
-        throw new Error(t('textSplit.selectModelFirst'));
-      }
-
       if (!model) {
-        throw new Error(t('textSplit.modelNotAvailable'));
+        throw new Error(t('textSplit.selectModelFirst'));
       }
 
       // 如果是单个文本块，直接调用单个生成接口
@@ -207,7 +214,7 @@ export default function TextSplitPage({ params }) {
         // 获取当前语言环境
         const currentLanguage = i18n.language === 'zh-CN' ? '中文' : 'en';
 
-        const response = await request(`/api/projects/${projectId}/chunks/${chunkId}/questions`, {
+        const response = await request(`/api/projects/${projectId}/chunks/${encodeURIComponent(chunkId)}/questions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -240,7 +247,7 @@ export default function TextSplitPage({ params }) {
             // 获取当前语言环境
             const currentLanguage = i18n.language === 'zh-CN' ? '中文' : 'en';
 
-            const response = await request(`/api/projects/${projectId}/chunks/${chunkId}/questions`, {
+            const response = await request(`/api/projects/${projectId}/chunks/${encodeURIComponent(chunkId)}/questions`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -342,10 +349,30 @@ export default function TextSplitPage({ params }) {
   };
 
   // 处理文件删除
-  const handleFileDeleted = fileName => {
-    console.log(t('textSplit.fileDeleted', { fileName }));
-    // 刷新文本块列表
-    fetchChunks();
+  const handleFileDeleted = (fileName,filesCount)=> {
+    console.log(t('textSplit.fileDeleted', { fileName}));
+    // 从 localStorage 获取当前选择的模型信息
+    let selectedModelInfo = null;
+
+    // 尝试从 localStorage 获取完整的模型信息
+    const modelInfoStr = localStorage.getItem('selectedModelInfo');
+
+    if (modelInfoStr) {
+      try {
+        selectedModelInfo = JSON.parse(modelInfoStr);
+      } catch (e) {
+        throw new Error(t('textSplit.modelInfoParseError'));
+      }
+    } else {
+      throw new Error(t('textSplit.selectModelFirst'));
+    }
+    //如果多个文件的情况下，删除的不是最后一个文件，就复用handleSplitText重新构建领域树
+    if(filesCount > 1){
+      handleSplitText(["rebuildToc.md"],selectedModelInfo); 
+    }else{//删除最后一个文件仅刷新界面即可
+      location.reload();
+    }
+       
   };
 
   // 关闭错误提示
@@ -374,6 +401,25 @@ export default function TextSplitPage({ params }) {
     );
   };
 
+  const handleSelected = (array) => {
+    if (array.length > 0) {
+      let selectedChunks = [];
+      for (let i = 0; i < array.length; i++) {
+        const name = array[i].replace(/\.md$/, "");
+        console.log(name);
+        const tempChunks = chunks.filter(item => item.id.includes(name))
+        tempChunks.forEach(item => {
+          selectedChunks.push(item);
+        })
+      }
+      setShowChunks(selectedChunks);
+      console.log(selectedChunks);
+    } else {
+      const allChunks = chunks;
+      setShowChunks(allChunks);
+    }
+  }
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8, position: 'relative' }}>
       {/* 文件上传组件 */}
@@ -382,6 +428,7 @@ export default function TextSplitPage({ params }) {
         onUploadSuccess={handleUploadSuccess}
         onProcessStart={handleSplitText}
         onFileDeleted={handleFileDeleted}
+        sendToPages={handleSelected}
       />
 
       {/* 标签页 */}
@@ -400,7 +447,7 @@ export default function TextSplitPage({ params }) {
         {activeTab === 0 && (
           <ChunkList
             projectId={projectId}
-            chunks={chunks}
+            chunks={showChunks}
             onDelete={handleDeleteChunk}
             onGenerateQuestions={handleGenerateQuestions}
             loading={loading}

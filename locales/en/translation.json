@@ -35,12 +35,14 @@
         "saveTaskConfig": "Save Task Config"
     },
     "questions": {
+        "filterAll": "All Questions",
+        "filterAnswered": "With Answers",
+        "filterUnanswered": "Without Answers",
         "title": "Questions",
         "confirmDeleteTitle": "Confirm Delete Question",
         "confirmDeleteContent": "Are you sure you want to delete the question \"{{question}}\"? This action cannot be undone.",
         "deleting": "Deleting question...",
         "batchDeleteTitle": "Confirm Batch Delete",
-        "batchDeleteContent": "Are you sure you want to delete {{count}} selected questions? This action cannot be undone.",
         "batchDeleting": "Deleting {{count}} questions...",
         "deleteSuccess": "Question deleted successfully",
         "deleteFailed": "Failed to delete question",
@@ -100,6 +102,8 @@
         "searchDataset": "Search Public Datasets"
     },
     "projects": {
+        "reuseConfig": "Reuse Model Config",
+        "noReuse": "No Configuration Reuse",
         "selectProject": "Select Project",
         "fetchFailed": "Failed to fetch project list",
         "fetchError": "Error fetching project list",
@@ -107,6 +111,8 @@
         "createFailed": "Failed to create project",
         "createError": "Error creating project",
         "createNew": "Create New Project",
+        "saveFailed": "Failed to save project",
+        "id": "Project ID",
         "name": "Project Name",
         "description": "Project Description",
         "questions": "Questions",
@@ -115,6 +121,7 @@
         "viewDetails": "View Details",
         "createFirst": "Please create a project first",
         "noProjects": "No projects found",
+        "notExist": "The project does not exist.",
         "createProject": "Create Project",
         "deleteConfirm": "Are you sure you want to delete this project? This action cannot be undone.",
         "deleteSuccess": "Project deleted successfully",
@@ -124,19 +131,24 @@
     },
     "textSplit": {
         "noFilesUploaded": "No files uploaded yet",
+        "unknownFile": "Unknown File",
+        "fetchFilesFailed": "Failed to fetch files",
         "editTag": "Edit Tag",
         "deleteTag": "Delete Tag",
         "addTag": "Add Tag",
         "selectedCount": "Selected {{count}} text chunks",
+        "totalCount":"total {{count}} text chunks",
         "batchGenerateQuestions": "Batch Generate Questions",
-        "uploadedDocuments": "Uploaded Documents",
+        "uploadedDocuments": "Uploaded {{count}} Documents",
         "title": "Texts",
         "uploadNewDocument": "Upload New Document",
         "selectFile": "Select File",
         "markdownOnly": "Currently only supports Markdown (.md) format files",
+        "supportedFormats": "Supported formats: .md, .txt, .docx",
         "uploadAndProcess": "Upload and Process",
         "selectedFiles": "Selected Files ({{count}})",
         "oneFileMessage": "File upload not allowed, please delete the existing file first",
+        "mutilFileMessage":"After uploading a new file, the domain tree will be rebuilt",
         "noChunks": " No text chunks found",
         "chunkDetails": "Chunk Details: {{chunkId}}",
         "fetchChunksFailed": "Failed to fetch text chunks",
@@ -229,6 +241,7 @@
         "customFormatSettings": "Custom Format Settings",
         "questionFieldName": "Question Field Name",
         "answerFieldName": "Answer Field Name",
+        "cotFieldName": "Cot Field Name",
         "includeLabels": "Include Labels"
     },
     "datasets": {
@@ -236,6 +249,7 @@
         "aiOptimizeAdvicePlaceholder": "Please enter your suggestions for improving the answer, and AI will optimize the answer and reasoning chain based on your suggestions",
         "aiOptimizeAdvice": "Please enter your suggestions for improving the answer, and AI will optimize the answer and reasoning chain based on your suggestions",
         "aiOptimize": "AI Optimize",
+        "partialSuccess": "Partially successful dataset generation ({{successCount}}/{{total}}), {{failCount}} questions failed",
         "generating": "Generating Dataset",
         "generateError": "Failed to generate dataset",
         "management": "Datasets",
@@ -259,9 +273,9 @@
         "exportFailed": "Export failed",
         "loading": "Loading datasets...",
         "stats": "Total {{total}} datasets, {{confirmed}} confirmed ({{percentage}}%)",
-        "actions": "Total selected: {{count}}",
+        "selected": "Total selected: {{count}}",
+        "batchconfirmDeleteMessage": "Are you sure you want to delete {{count}} selected questions? This action cannot be undone.",
         "batchDelete": "Batch Delete",
-        "batchDeleteContent": "Are you sure you want to delete {{count}} selected questions? This action cannot be undone.",
         "batchDeleteProgress": "Completed: {{completed}}/{{total}}",
         "batchDeleteCount": "Delete count: {{count}}",
         "searchPlaceholder": "Search datasets...",
@@ -332,11 +346,14 @@
         "selectModelMax3": "Please select up to 3 models to test"
     },
     "chunks": {
-        "title": "Text Chunk"
+        "title": "Text Chunk",
+        "defaultTitle": "Default Title"
     },
     "models": {
         "configNotFound": "Model config not found",
         "parseError": "Failed to parse model config",
+        "fetchFailed": "Failed to fetch model",
+        "saveFailed": "Failed to save model config",
         "title": "Model Settings",
         "add": "Add Model",
         "unselectedModel": "Unselected Model",
@@ -347,6 +364,15 @@
         "modelName": "Model Name",
         "endpoint": "Endpoint",
         "apiKey": "API Key",
-        "provider": "Provider"
+        "provider": "Provider",
+        "localModel": "Local Model",
+        "apiKeyConfigured": "API Key Configured",
+        "apiKeyNotConfigured": "API Key Not Configured"
+    },
+    "stats": {
+        "ongoingProjects": "Ongoing Projects",
+        "questionCount": "Question Count",
+        "generatedDatasets": "Generated Datasets",
+        "supportedModels": "Supported Models"
     }
 }
